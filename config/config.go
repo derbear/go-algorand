@@ -406,10 +406,40 @@ func initConsensusTestProtocols() {
 		UpgradeWaitRounds:   10000,
 		MaxVersionStringLen: 64,
 
+		MinBalance:          10000,
+		MinTxnFee:           1000,
+		MaxTxnLife:          1000,
+		MaxTxnNoteBytes:     1024,
 		MaxTxnBytesPerBlock: 100000000,
 		DefaultKeyDilution:  10000,
 
+		MaxTimestampIncrement: 25,
+
+		RewardUnit:                 1e6,
+		RewardsRateRefreshInterval: 5e5,
+
 		ApprovedUpgrades: map[protocol.ConsensusVersion]bool{},
+
+		NumProposers:           30,
+		SoftCommitteeSize:      2500,
+		SoftCommitteeThreshold: 1870,
+		CertCommitteeSize:      1000,
+		CertCommitteeThreshold: 720,
+		NextCommitteeSize:      10000,
+		NextCommitteeThreshold: 7750,
+		LateCommitteeSize:      10000,
+		LateCommitteeThreshold: 7750,
+		RedoCommitteeSize:      10000,
+		RedoCommitteeThreshold: 7750,
+		DownCommitteeSize:      10000,
+		DownCommitteeThreshold: 7750,
+
+		FastRecoveryLambda: 5 * time.Minute,
+
+		SeedLookback:        2,
+		SeedRefreshInterval: 100,
+
+		MaxBalLookback: 320,
 	}
 
 	rapidRecalcParams := Consensus[protocol.ConsensusCurrentVersion]
