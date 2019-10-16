@@ -166,7 +166,7 @@ func assetParams(creator basics.Address, params basics.AssetParams) v1.AssetPara
 
 func assetConfigTxEncode(tx transactions.Transaction, ad transactions.ApplyData) v1.Transaction {
 	config := v1.AssetConfigTransactionType{
-		AssetID: tx.AssetConfigTxnFields.ConfigAsset.Index,
+		AssetID: uint64(tx.AssetConfigTxnFields.ConfigAsset.Index),
 		Params: assetParams(tx.AssetConfigTxnFields.ConfigAsset.Creator,
 			tx.AssetConfigTxnFields.AssetParams),
 	}
@@ -178,7 +178,7 @@ func assetConfigTxEncode(tx transactions.Transaction, ad transactions.ApplyData)
 
 func assetTransferTxEncode(tx transactions.Transaction, ad transactions.ApplyData) v1.Transaction {
 	xfer := v1.AssetTransferTransactionType{
-		AssetID:  tx.AssetTransferTxnFields.XferAsset.Index,
+		AssetID:  uint64(tx.AssetTransferTxnFields.XferAsset.Index),
 		Creator:  tx.AssetTransferTxnFields.XferAsset.Creator.String(),
 		Amount:   tx.AssetTransferTxnFields.AssetAmount,
 		Receiver: tx.AssetTransferTxnFields.AssetReceiver.String(),
@@ -199,7 +199,7 @@ func assetTransferTxEncode(tx transactions.Transaction, ad transactions.ApplyDat
 
 func assetFreezeTxEncode(tx transactions.Transaction, ad transactions.ApplyData) v1.Transaction {
 	freeze := v1.AssetFreezeTransactionType{
-		AssetID:         tx.AssetFreezeTxnFields.FreezeAsset.Index,
+		AssetID:         uint64(tx.AssetFreezeTxnFields.FreezeAsset.Index),
 		Creator:         tx.AssetFreezeTxnFields.FreezeAsset.Creator.String(),
 		Account:         tx.AssetFreezeTxnFields.FreezeAccount.String(),
 		NewFreezeStatus: tx.AssetFreezeTxnFields.AssetFrozen,
@@ -479,7 +479,7 @@ func AccountInformation(ctx lib.ReqContext, w http.ResponseWriter, r *http.Reque
 	if len(record.Assets) > 0 {
 		assets = make(map[uint64]v1.AssetHolding)
 		for curid, holding := range record.Assets {
-			assets[curid.Index] = v1.AssetHolding{
+			assets[uint64(curid.Index)] = v1.AssetHolding{
 				Creator: curid.Creator.String(),
 				Amount:  holding.Amount,
 				Frozen:  holding.Frozen,
@@ -491,7 +491,7 @@ func AccountInformation(ctx lib.ReqContext, w http.ResponseWriter, r *http.Reque
 	if len(record.AssetParams) > 0 {
 		thisAssetParams = make(map[uint64]v1.AssetParams)
 		for idx, params := range record.AssetParams {
-			thisAssetParams[idx] = assetParams(addr, params)
+			thisAssetParams[uint64(idx)] = assetParams(addr, params)
 		}
 	}
 
@@ -911,7 +911,7 @@ func AssetInformation(ctx lib.ReqContext, w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if asset, ok := record.AssetParams[queryIndex]; ok {
+	if asset, ok := record.AssetParams[basics.AssetID(queryIndex)]; ok {
 		thisAssetParams := assetParams(addr, asset)
 		SendJSON(AssetInformationResponse{&thisAssetParams}, w, ctx.Log)
 	} else {

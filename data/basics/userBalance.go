@@ -108,7 +108,7 @@ type AccountData struct {
 
 	// If this account created an asset, AssetParams stores
 	// the parameters defining that asset.  The params are indexed
-	// by the Index of the AssetID; the Creator is this account's address.
+	// by the AssetID; the Creator is this account's address.
 	//
 	// An account with any asset in AssetParams cannot be
 	// closed, until the asset is destroyed.  An asset can
@@ -118,12 +118,13 @@ type AccountData struct {
 	// NOTE: do not modify this value in-place in existing AccountData
 	// structs; allocate a copy and modify that instead.  AccountData
 	// is expected to have copy-by-value semantics.
-	AssetParams map[uint64]AssetParams `codec:"apar"`
+	AssetParams map[AssetID]AssetParams `codec:"apar"`
 
+	// TOOD AssetKey -> AssetID
 	// Assets is the set of assets that can be held by this
 	// account.  Assets (i.e., slots in this map) are explicitly
 	// added and removed from an account by special transactions.
-	// The map is keyed by the AssetID, which is the address of
+	// The map is keyed by the AssetKey, which is the address of
 	// the account that created the asset plus a unique counter
 	// to distinguish re-created assets.
 	//
@@ -160,16 +161,20 @@ type BalanceDetail struct {
 	Accounts    []AccountDetail
 }
 
-// AssetID is a name of an asset.
-type AssetID struct {
+// AssetID uniquely identifies an asset.
+type AssetID uint64
+
+// AssetKey is a (Creator, AssetID) pair referring to a single asset.
+type AssetKey struct {
 	Creator Address `codec:"c"`
-	Index   uint64  `codec:"i"`
+	Index   AssetID `codec:"i"`
 }
 
 // AssetHolding describes an asset held by an account.
 type AssetHolding struct {
-	Amount uint64 `codec:"a"`
-	Frozen bool   `codec:"f"`
+	Creator Address `codec:"c"`
+	Amount  uint64  `codec:"a"`
+	Frozen  bool    `codec:"f"`
 }
 
 // AssetParams describes the parameters of an asset.

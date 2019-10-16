@@ -461,7 +461,7 @@ func (c *Client) MakeUnsignedAssetDestroyTx(creator string, index uint64) (trans
 	var err error
 
 	tx.Type = protocol.AssetConfigTx
-	tx.ConfigAsset.Index = index
+	tx.ConfigAsset.Index = basics.AssetID(index)
 	tx.ConfigAsset.Creator, err = basics.UnmarshalChecksumAddress(creator)
 	if err != nil {
 		return tx, err
@@ -509,7 +509,7 @@ func (c *Client) MakeUnsignedAssetConfigTx(creator string, index uint64, newMana
 	}
 
 	tx.Type = protocol.AssetConfigTx
-	tx.ConfigAsset.Index = index
+	tx.ConfigAsset.Index = basics.AssetID(index)
 	tx.ConfigAsset.Creator, err = basics.UnmarshalChecksumAddress(creator)
 	if err != nil {
 		return tx, err
@@ -557,7 +557,7 @@ func (c *Client) MakeUnsignedAssetSendTx(creator string, index uint64, amount ui
 
 	tx.Type = protocol.AssetTransferTx
 	tx.AssetAmount = amount
-	tx.XferAsset.Index = index
+	tx.XferAsset.Index = basics.AssetID(index)
 	tx.XferAsset.Creator, err = basics.UnmarshalChecksumAddress(creator)
 	if err != nil {
 		return tx, err
@@ -596,7 +596,7 @@ func (c *Client) MakeUnsignedAssetFreezeTx(creator string, index uint64, account
 	var err error
 
 	tx.Type = protocol.AssetFreezeTx
-	tx.FreezeAsset.Index = index
+	tx.FreezeAsset.Index = basics.AssetID(index)
 	tx.FreezeAsset.Creator, err = basics.UnmarshalChecksumAddress(creator)
 	if err != nil {
 		return tx, err
