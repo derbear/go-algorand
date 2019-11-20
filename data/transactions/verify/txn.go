@@ -60,7 +60,7 @@ type Params struct {
 
 // PrepareContexts prepares verification contexts for a transaction
 // group.
-func PrepareContexts(group []transactions.SignedTxn, contextHdr bookkeeping.BlockHeader) ([]Context, error) {
+func PrepareContexts(group []transactions.SignedTxn, contextHdr bookkeeping.BlockHeader) []Context {
 	ctxs := make([]Context, len(group))
 	for i := range group {
 		spec := transactions.SpecialAddresses{
@@ -78,7 +78,7 @@ func PrepareContexts(group []transactions.SignedTxn, contextHdr bookkeeping.Bloc
 		ctxs[i] = ctx
 	}
 
-	return ctxs, nil
+	return ctxs
 }
 
 // TxnPool verifies that a SignedTxn has a good signature and that the underlying
