@@ -398,7 +398,7 @@ func (node *AlgorandFullNode) BroadcastSignedTxGroup(txgroup []transactions.Sign
 		return err
 	}
 
-	contexts, err := verify.PrepareContexts(node.ledger, txgroup, b)
+	contexts, err := verify.PrepareContexts(txgroup, b)
 	if err != nil {
 		node.log.Warnf("could not prepare contexts for group %v: %v", txgroup, err)
 		return err
