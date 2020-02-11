@@ -18,8 +18,6 @@ package agreement
 
 import (
 	"context"
-
-	"github.com/algorand/go-algorand/protocol"
 )
 
 // periodRequestsContext keeps a context for all tasks associated with the same period, so we can cancel them if the period becomes irrelevant.
@@ -35,7 +33,10 @@ type periodRequestsContext struct {
 // It allows for the pinned value to act as a sentinel.
 type cryptoRequestCtxKey struct {
 	period period
-	pinned bool // If this is set, period should be 0.
+
+	// following two booleans are mutually exclusive
+	certify bool // If this is set, period should be 0.
+	pinned  bool // If this is set, period should be 0.
 }
 
 // roundRequestsContext keeps a the root context for all cryptoRequests associated with a round.
@@ -53,8 +54,29 @@ func makePendingRequestsContext() pendingRequestsContext {
 	return make(map[round]roundRequestsContext)
 }
 
-// add returns a context associated with a given request
-func (pending pendingRequestsContext) add(request cryptoRequest) context.Context {
+// addVote returns a context associated with a given request
+func (pending pendingRequestsContext) addVote(request cryptoVoteRequest) context.Context {
+	// create round context
+	if _, has := pending[request.Round]; !has {
+		roundCtx, cancel := context.WithCancel(context.Background())
+		pending[request.Round] = roundRequestsContext{ctx: roundCtx, cancel: cancel, periods: make(map[cryptoRequestCtxKey]periodRequestsContext)}
+	}
+
+	// create period context
+	pkey := cryptoRequestCtxKey{period: request.Period}
+	if _, has := pending[request.Round].periods[pkey]; !has {
+		periodCtx, periodCancel := context.WithCancel(pending[request.Round].ctx)
+		pending[request.Round].periods[pkey] = periodRequestsContext{ctx: periodCtx, cancel: periodCancel}
+	}
+
+	// find the right context for the request
+	roundCtx := pending[request.Round]
+	periodCtx := roundCtx.periods[pkey]
+	return periodCtx.ctx
+}
+
+// addProposal returns a context associated with a given request
+func (pending pendingRequestsContext) addProposal(request cryptoProposalRequest) context.Context {
 	// create round context
 	if _, has := pending[request.Round]; !has {
 		roundCtx, cancel := context.WithCancel(context.Background())
@@ -76,23 +98,20 @@ func (pending pendingRequestsContext) add(request cryptoRequest) context.Context
 	roundCtx := pending[request.Round]
 	periodCtx, has := roundCtx.periods[pkey]
 
-	if request.Tag == protocol.ProposalPayloadTag {
-		// we have a new proposal, so cancel validation of an old proposal for the same round and period
-		if has && periodCtx.proposalCancelFunc != nil {
-			periodCtx.proposalCancelFunc()
-		}
-
-		// create a context for the new proposal
-		var proposalContext context.Context
-		proposalContext, periodCtx.proposalCancelFunc = context.WithCancel(periodCtx.ctx)
-		pending[request.Round].periods[pkey] = periodCtx
-		return proposalContext
+	// we have a new proposal, so cancel validation of an old proposal for the same round and period
+	if has && periodCtx.proposalCancelFunc != nil {
+		periodCtx.proposalCancelFunc()
 	}
-	return periodCtx.ctx
+
+	// create a context for the new proposal
+	var proposalContext context.Context
+	proposalContext, periodCtx.proposalCancelFunc = context.WithCancel(periodCtx.ctx)
+	pending[request.Round].periods[pkey] = periodCtx
+	return proposalContext
 }
 
-// add returns a context associated with a given request
-func (pending pendingRequestsContext) addVote(request cryptoVoteRequest) context.Context {
+// addBundle returns a context associated with a given request
+func (pending pendingRequestsContext) addBundle(request cryptoBundleRequest) context.Context {
 	// create round context
 	if _, has := pending[request.Round]; !has {
 		roundCtx, cancel := context.WithCancel(context.Background())
@@ -100,8 +119,8 @@ func (pending pendingRequestsContext) addVote(request cryptoVoteRequest) context
 	}
 
 	pkey := cryptoRequestCtxKey{period: request.Period}
-	if request.Pinned {
-		pkey = cryptoRequestCtxKey{pinned: request.Pinned}
+	if request.Certify {
+		pkey = cryptoRequestCtxKey{certify: request.Certify}
 	}
 
 	// create period context
@@ -117,7 +136,7 @@ func (pending pendingRequestsContext) addVote(request cryptoVoteRequest) context
 }
 
 // clearStaleContexts cancels contexts associated with cryptoRequests that are no longer relevant at the given round and period
-func (pending pendingRequestsContext) clearStaleContexts(r round, p period, pinned bool) {
+func (pending pendingRequestsContext) clearStaleContexts(r round, p period, pinned bool, certify bool) {
 	// at round r + 2 we can clear tasks from round r
 	oldRounds := make([]round, 0)
 	for round := range pending {
@@ -126,8 +145,9 @@ func (pending pendingRequestsContext) clearStaleContexts(r round, p period, pinn
 		}
 	}
 
-	// we got a new pinned proposal: do not clear period tasks
-	if pinned {
+	// we got a new pinned proposal or a cert bundle:
+	// do not clear period tasks
+	if pinned || certify {
 		return
 	}
 
@@ -140,7 +160,7 @@ func (pending pendingRequestsContext) clearStaleContexts(r round, p period, pinn
 	if _, has := pending[r]; has {
 		oldPeriods := make([]cryptoRequestCtxKey, 0)
 		for pkey := range pending[r].periods {
-			if !pkey.pinned && pkey.period+3 <= p {
+			if !pkey.pinned && !pkey.certify && pkey.period+3 <= p {
 				oldPeriods = append(oldPeriods, pkey)
 			}
 		}

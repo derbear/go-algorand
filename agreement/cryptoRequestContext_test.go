@@ -26,8 +26,8 @@ import (
 
 func TestCryptoRequestContextAddCancelRound(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Period: 10}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Period: 10}
+	ctx := pending.addProposal(req)
 
 	roundCtx, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -45,8 +45,8 @@ func TestCryptoRequestContextAddCancelRound(t *testing.T) {
 
 func TestCryptoRequestContextAddCancelPeriod(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Period: 10}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Period: 10}
+	ctx := pending.addProposal(req)
 
 	_, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -64,11 +64,11 @@ func TestCryptoRequestContextAddCancelPeriod(t *testing.T) {
 
 func TestCryptoRequestContextAddCancelProposal(t *testing.T) {
 	pending := makePendingRequestsContext()
-	proposal := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
-	ctx := pending.add(proposal)
+	proposal := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
+	ctx := pending.addProposal(proposal)
 
-	proposal2 := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
-	ctx2 := pending.add(proposal2)
+	proposal2 := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
+	ctx2 := pending.addProposal(proposal2)
 
 	select {
 	case <-ctx.Done():
@@ -86,11 +86,11 @@ func TestCryptoRequestContextAddCancelProposal(t *testing.T) {
 
 func TestCryptoRequestContextAddCancelPinnedProposal(t *testing.T) {
 	pending := makePendingRequestsContext()
-	proposal := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
-	ctx := pending.add(proposal)
+	proposal := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
+	ctx := pending.addProposal(proposal)
 
-	proposal2 := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
-	ctx2 := pending.add(proposal2)
+	proposal2 := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
+	ctx2 := pending.addProposal(proposal2)
 
 	select {
 	case <-ctx.Done():
@@ -108,11 +108,11 @@ func TestCryptoRequestContextAddCancelPinnedProposal(t *testing.T) {
 
 func TestCryptoRequestContextAddNoCancelPinnedProposal(t *testing.T) {
 	pending := makePendingRequestsContext()
-	proposal := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
-	ctx := pending.add(proposal)
+	proposal := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
+	ctx := pending.addProposal(proposal)
 
-	proposal2 := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
-	ctx2 := pending.add(proposal2)
+	proposal2 := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
+	ctx2 := pending.addProposal(proposal2)
 
 	select {
 	case <-ctx.Done():
@@ -129,11 +129,11 @@ func TestCryptoRequestContextAddNoCancelPinnedProposal(t *testing.T) {
 
 func TestCryptoRequestContextAddNoInterferencePinnedProposal(t *testing.T) {
 	pending := makePendingRequestsContext()
-	proposal := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
-	ctx := pending.add(proposal)
+	proposal := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Period: 10}
+	ctx := pending.addProposal(proposal)
 
-	proposal2 := cryptoRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
-	ctx2 := pending.add(proposal2)
+	proposal2 := cryptoProposalRequest{message: message{Tag: protocol.ProposalPayloadTag}, Round: 10, Pinned: true}
+	ctx2 := pending.addProposal(proposal2)
 
 	select {
 	case <-ctx.Done():
@@ -150,8 +150,8 @@ func TestCryptoRequestContextAddNoInterferencePinnedProposal(t *testing.T) {
 
 func TestCryptoRequestContextCleanupByRound(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Period: 10}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Period: 10}
+	ctx := pending.addProposal(req)
 
 	_, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -159,14 +159,14 @@ func TestCryptoRequestContextCleanupByRound(t *testing.T) {
 	_, hasPeriod := pending[req.Round].periods[cryptoRequestCtxKey{period: req.Period}]
 	require.True(t, hasPeriod)
 
-	pending.clearStaleContexts(11, 20, false)
+	pending.clearStaleContexts(11, 20, false, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request")
 	default:
 	}
 
-	pending.clearStaleContexts(12, 20, false)
+	pending.clearStaleContexts(12, 20, false, false)
 	select {
 	case <-ctx.Done():
 	default:
@@ -182,8 +182,8 @@ func TestCryptoRequestContextCleanupByRound(t *testing.T) {
 
 func TestCryptoRequestContextCleanupByRoundPinned(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Pinned: true}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Pinned: true}
+	ctx := pending.addProposal(req)
 
 	_, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -191,14 +191,14 @@ func TestCryptoRequestContextCleanupByRoundPinned(t *testing.T) {
 	_, hasPeriod := pending[req.Round].periods[cryptoRequestCtxKey{pinned: req.Pinned}]
 	require.True(t, hasPeriod)
 
-	pending.clearStaleContexts(11, 20, false)
+	pending.clearStaleContexts(11, 20, false, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request")
 	default:
 	}
 
-	pending.clearStaleContexts(12, 20, false)
+	pending.clearStaleContexts(12, 20, false, false)
 	select {
 	case <-ctx.Done():
 	default:
@@ -214,8 +214,8 @@ func TestCryptoRequestContextCleanupByRoundPinned(t *testing.T) {
 
 func TestCryptoRequestContextCleanupByPeriod(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Period: 10}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Period: 10}
+	ctx := pending.addProposal(req)
 
 	_, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -223,21 +223,21 @@ func TestCryptoRequestContextCleanupByPeriod(t *testing.T) {
 	_, hasPeriod := pending[req.Round].periods[cryptoRequestCtxKey{period: req.Period}]
 	require.True(t, hasPeriod)
 
-	pending.clearStaleContexts(10, 12, false)
+	pending.clearStaleContexts(10, 12, false, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request")
 	default:
 	}
 
-	pending.clearStaleContexts(10, 13, true)
+	pending.clearStaleContexts(10, 13, true, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request via pinned")
 	default:
 	}
 
-	pending.clearStaleContexts(10, 13, false)
+	pending.clearStaleContexts(10, 13, false, false)
 	select {
 	case <-ctx.Done():
 	default:
@@ -253,8 +253,8 @@ func TestCryptoRequestContextCleanupByPeriod(t *testing.T) {
 
 func TestCryptoRequestContextCleanupByPeriodPinned(t *testing.T) {
 	pending := makePendingRequestsContext()
-	req := cryptoRequest{Round: 10, Pinned: true}
-	ctx := pending.add(req)
+	req := cryptoProposalRequest{Round: 10, Pinned: true}
+	ctx := pending.addProposal(req)
 
 	_, hasRound := pending[req.Round]
 	require.True(t, hasRound)
@@ -262,14 +262,14 @@ func TestCryptoRequestContextCleanupByPeriodPinned(t *testing.T) {
 	_, hasPeriod := pending[req.Round].periods[cryptoRequestCtxKey{pinned: req.Pinned}]
 	require.True(t, hasPeriod)
 
-	pending.clearStaleContexts(10, 12, false)
+	pending.clearStaleContexts(10, 12, false, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request")
 	default:
 	}
 
-	pending.clearStaleContexts(10, 13, false)
+	pending.clearStaleContexts(10, 13, false, false)
 	select {
 	case <-ctx.Done():
 		t.Errorf("cancelled request but pinned")
